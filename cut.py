@@ -8,6 +8,7 @@ import time
 import shutil
 from collections import defaultdict
 from datetime import datetime
+import re
 
 def cv2AddChineseText(img, text, position, textColor, textSize):
     if (isinstance(img, np.ndarray)):  # 判断是否OpenCV图片类型
@@ -20,6 +21,32 @@ def cv2AddChineseText(img, text, position, textColor, textSize):
     # 转换回OpenCV格式
     return cv2.cvtColor(np.asarray(img), cv2.COLOR_RGB2BGR)
 
+# 新增函数：获取下一个输出文件夹路径
+def get_next_output_folder(base_path):
+    """在基础路径下找到最大序号并返回下一个输出文件夹路径"""
+    os.makedirs(base_path, exist_ok=True)
+    
+    # 查找已存在的output文件夹
+    existing_folders = [f for f in os.listdir(base_path) 
+                       if os.path.isdir(os.path.join(base_path, f)) 
+                       and re.match(r'output\d+', f)]
+    
+    # 提取数字并找到最大值
+    max_num = 0
+    for folder in existing_folders:
+        try:
+            num = int(re.search(r'output(\d+)', folder).group(1))
+            if num > max_num:
+                max_num = num
+        except:
+            continue
+    
+    # 创建新的输出文件夹
+    next_num = max_num + 1
+    new_folder = os.path.join(base_path, f"output{next_num}")
+    os.makedirs(new_folder, exist_ok=True)
+    print(f"创建新的输出文件夹: {new_folder}")
+    return new_folder
 
 def detect_and_save_segments(
     input_video_path,
@@ -98,12 +125,6 @@ def detect_and_save_segments(
         target_duration = sum(end - start for start, end in all_segments)
         duration_ratio = (target_duration / duration) * 100 if duration > 0 else 0
         
-        # cv2.putText(frame, f"Segments: {len(all_segments)}", (10, 30), 
-        #            cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
-        # cv2.putText(frame, f"Time: {current_time_sec:.1f}s", (10, 60), 
-        #            cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
-        # cv2.putText(frame, f"Time Ratio: {duration_ratio:.2f}%", (10, 90), 
-        #            cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
         frame = cv2AddChineseText(frame, f"广告出现次数(Segments): {len(all_segments)}", (10, 50), (255, 0, 0), 40)
         frame = cv2AddChineseText(frame, f"广告出现时长(Time): {current_time_sec:.1f}s", (10, 100), (255, 0, 0), 40)
         frame = cv2AddChineseText(frame, f"广告出现时长占比(Time Ratio): {duration_ratio:.2f}%", (10, 150), (255, 0, 0), 40)
@@ -123,7 +144,7 @@ def detect_and_save_segments(
 
     if not all_segments:
         print(f"未检测到目标类别: {target_classes}")
-        return 0.0, []
+        return 0.0, [], duration
 
     # 保存视频片段
     video_clip = VideoFileClip(input_video_path)
@@ -138,7 +159,7 @@ def detect_and_save_segments(
         
         try:
             # 修复方法名：subclipped -> subclip
-            segment_clip = video_clip.subclipped(expanded_start, expanded_end)
+            segment_clip = video_clip.subclip(expanded_start, expanded_end)
             
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             output_filename = f"{'-'.join(target_classes)}_{timestamp}_{i+1}_{expanded_start:.1f}s-{expanded_end:.1f}s.mp4"
@@ -175,9 +196,9 @@ def detect_and_save_segments(
     
     print(f"目标 '{'-'.join(target_classes)}' 总出现时长: {target_duration:.2f}秒")
     print(f"共保存 {len(saved_segments)} 个片段到 {output_folder}")
-    return target_duration, saved_segments,duration
+    return target_duration, saved_segments, duration
 
-def generate_summary_report(target_classes, total_duration, segments, output_folder,duration):
+def generate_summary_report(target_classes, total_duration, segments, output_folder, duration):
     """生成摘要报告"""
     report_path = os.path.join(output_folder, f"{'-'.join(target_classes)}_summary.txt")
     
@@ -196,8 +217,7 @@ def generate_summary_report(target_classes, total_duration, segments, output_fol
                     f"(时长: {seg['duration']:.1f}s)\n")
         
         # 计算目标时长占比
-        total_target_duration = sum(seg['original_end'] - seg['original_start'] for seg in segments)
-        duration_ratio = (total_duration/duration) * 100 if total_duration > 0 else 0
+        duration_ratio = (total_duration / duration) * 100 if duration > 0 else 0
         
         f.write(f"\n目标出现时长占比: {duration_ratio:.2f}%\n")
     
@@ -207,8 +227,11 @@ def generate_summary_report(target_classes, total_duration, segments, output_fol
 if __name__ == "__main__":
     # 示例用法
     input_video = "test/4808-4813.mp4"
-    output_folder = "output"
+    base_output_folder = "output"  # 基础输出目录
     target_classes = ["Billboard", "drinks"]  # 要检测的多个目标类别
+    
+    # 获取下一个输出文件夹
+    output_folder = get_next_output_folder(base_output_folder)
     
     start_time = time.time()
     
@@ -224,7 +247,7 @@ if __name__ == "__main__":
     
     # 生成摘要报告
     if saved_segments:
-        generate_summary_report(target_classes, total_duration, saved_segments, output_folder,duration)
+        generate_summary_report(target_classes, total_duration, saved_segments, output_folder, duration)
     
     print(f"处理完成! 总耗时: {time.time() - start_time:.2f}秒")
     print(f"目标 '{', '.join(target_classes)}' 总出现时长: {total_duration:.2f}秒")
