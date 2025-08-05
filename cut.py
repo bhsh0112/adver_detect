@@ -15,7 +15,7 @@ def cv2AddChineseText(img, text, position, textColor, textSize):
         img = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
     draw = ImageDraw.Draw(img)
     fontStyle = ImageFont.truetype(
-        "simsun.ttc", textSize, encoding="utf-8")
+        "微软雅黑.TTC", textSize, encoding="utf-8")
     # 绘制文本
     draw.text(position, text, textColor, font=fontStyle)
     # 转换回OpenCV格式
@@ -58,7 +58,7 @@ def detect_and_save_segments(
     min_segment_duration=0.3
 ):
     os.makedirs(output_folder, exist_ok=True)
-    model = YOLO("./weights/best.pt")
+    model = YOLO("./weights/su-v3.pt")
     cap = cv2.VideoCapture(input_video_path)
     if not cap.isOpened():
         raise ValueError(f"无法打开视频文件: {input_video_path}")
@@ -103,13 +103,17 @@ def detect_and_save_segments(
         detections = results[0].boxes.data.cpu().numpy()
 
         has_target = False
+        area = 0
         for det in detections:
             if len(det) >= 6 and int(det[5]) in target_class_ids:
                 has_target = True
                 x1, y1, x2, y2 = map(int, det[:4])
+                # print("x1, y1, x2, y2:", x1, y1, x2, y2)
+                area += (x2 - x1) * (y2 - y1)
                 cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)  # 改为绿色框
                 cv2.putText(frame, class_names[int(det[5])], (x1, y1 - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+                
 
         # 判断是否进入或离开一个目标片段
         if has_target and not in_segment:
@@ -126,8 +130,10 @@ def detect_and_save_segments(
         duration_ratio = (target_duration / duration) * 100 if duration > 0 else 0
         
         frame = cv2AddChineseText(frame, f"广告出现次数(Segments): {len(all_segments)}", (10, 50), (255, 0, 0), 40)
-        frame = cv2AddChineseText(frame, f"广告出现时长(Time): {current_time_sec:.1f}s", (10, 100), (255, 0, 0), 40)
+        frame = cv2AddChineseText(frame, f"广告出现时长(Time): {target_duration:.1f}s", (10, 100), (255, 0, 0), 40)
         frame = cv2AddChineseText(frame, f"广告出现时长占比(Time Ratio): {duration_ratio:.2f}%", (10, 150), (255, 0, 0), 40)
+        # print("area,width,height:", area/(width*height))
+        frame = cv2AddChineseText(frame, f"广告面积占比: {area/(width*height)*100:.1f}%", (10, 200), (255, 0, 0), 40)
 
         writer.write(frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -159,7 +165,7 @@ def detect_and_save_segments(
         
         try:
             # 修复方法名：subclipped -> subclip
-            segment_clip = video_clip.subclip(expanded_start, expanded_end)
+            segment_clip = video_clip.subclipped(expanded_start, expanded_end)
             
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             output_filename = f"{'-'.join(target_classes)}_{timestamp}_{i+1}_{expanded_start:.1f}s-{expanded_end:.1f}s.mp4"
@@ -226,7 +232,7 @@ def generate_summary_report(target_classes, total_duration, segments, output_fol
 
 if __name__ == "__main__":
     # 示例用法
-    input_video = "test/4808-4813.mp4"
+    input_video = "test/广告2.mp4"
     base_output_folder = "output"  # 基础输出目录
     target_classes = ["Billboard", "drinks"]  # 要检测的多个目标类别
     
