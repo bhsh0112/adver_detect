@@ -2,7 +2,7 @@ import os
 import json
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, HRFlowable
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from datetime import datetime
@@ -72,17 +72,31 @@ def generate_pdf_report(video_segments, summary_text, boxed_video_path, output_p
     """
     Generate a PDF report summarizing the video advertisement analysis.
     """
-    doc = SimpleDocTemplate(output_pdf_path, pagesize=letter, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
+    doc = SimpleDocTemplate(
+        output_pdf_path,
+        pagesize=letter,
+        rightMargin=72,
+        leftMargin=72,
+        topMargin=72,
+        bottomMargin=36
+    )
     elements = []
     styles = getSampleStyleSheet()
     
     # Custom styles with Chinese font support
+    # Theme colors
+    primary_color = colors.HexColor('#1F4E79')
+    secondary_color = colors.HexColor('#2E75B6')
+    accent_color = colors.HexColor('#DDEBF7')
+
     title_style = ParagraphStyle(
         'Title',
         parent=styles['Heading1'],
         fontName='微软雅黑',
-        fontSize=18,
-        spaceAfter=12,
+        fontSize=24,
+        textColor=primary_color,
+        spaceAfter=14,
+        leading=28,
         alignment=1  # Center
     )
     subtitle_style = ParagraphStyle(
@@ -90,6 +104,7 @@ def generate_pdf_report(video_segments, summary_text, boxed_video_path, output_p
         parent=styles['Heading2'],
         fontName='微软雅黑',
         fontSize=14,
+        textColor=secondary_color,
         spaceAfter=10
     )
     normal_style = ParagraphStyle(
@@ -97,7 +112,7 @@ def generate_pdf_report(video_segments, summary_text, boxed_video_path, output_p
         parent=styles['Normal'],
         fontName='微软雅黑',
         fontSize=10,
-        leading=14
+        leading=16
     )
     
     # Create a style for table cells with word wrap
@@ -106,13 +121,14 @@ def generate_pdf_report(video_segments, summary_text, boxed_video_path, output_p
         parent=styles['Normal'],
         fontName='微软雅黑',
         fontSize=10,
-        leading=12,
+        leading=14,
         wordWrap='CJK'  # Enable word wrap for CJK characters
     )
     
     # Title
     elements.append(Paragraph("视频广告分析报告", title_style))
-    elements.append(Spacer(1, 0.2 * inch))
+    elements.append(HRFlowable(width='100%', thickness=1, color=primary_color))
+    elements.append(Spacer(1, 0.25 * inch))
     
     # Date
     current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -129,18 +145,20 @@ def generate_pdf_report(video_segments, summary_text, boxed_video_path, output_p
     ]
     source_table = Table(source_data, colWidths=[1.5 * inch, 4 * inch])
     source_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('BACKGROUND', (0, 0), (-1, 0), secondary_color),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (-1, 0), '微软雅黑'),
+        ('FONTNAME', (0, 0), (-1, -1), '微软雅黑'),
         ('FONTSIZE', (0, 0), (-1, 0), 12),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [accent_color, colors.white]),
         ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
-        ('FONTNAME', (0, 1), (-1, -1), '微软雅黑'),
-        ('FONTSIZE', (0, 1), (-1, -1), 10),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP')  # Align content to top of cell
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6)
     ]))
     elements.append(source_table)
     elements.append(Spacer(1, 0.3 * inch))
@@ -158,20 +176,22 @@ def generate_pdf_report(video_segments, summary_text, boxed_video_path, output_p
                 Paragraph(os.path.relpath(segment['path'], input_folder), table_text_style)
             ])
         
-        ad_table = Table(ad_data, colWidths=[0.8 * inch, 2.2 * inch, 1.2 * inch, 2 * inch])
+        ad_table = Table(ad_data, colWidths=[0.8 * inch, 2.2 * inch, 1.2 * inch, 2.0 * inch])
         ad_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('BACKGROUND', (0, 0), (-1, 0), primary_color),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), '微软雅黑'),
+            ('FONTNAME', (0, 0), (-1, -1), '微软雅黑'),
             ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.lightgrey),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.whitesmoke, accent_color]),
             ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
-            ('FONTNAME', (0, 1), (-1, -1), '微软雅黑'),
-            ('FONTSIZE', (0, 1), (-1, -1), 8),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP')
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 6),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4)
         ]))
         elements.append(ad_table)
     else:
@@ -198,24 +218,26 @@ def generate_pdf_report(video_segments, summary_text, boxed_video_path, output_p
     avg_size_kb = (total_size_mb * 1024 / total_segments) if total_segments > 0 else 0
     
     stats_data = [
-        ["Total Advertisement Segments", str(total_segments)],
-        ["Total Size of Segments", f"{total_size_mb:.2f} MB"],
-        ["Average Segment Size", f"{avg_size_kb:.2f} KB"],
-        ["Boxed Video Available", "Yes" if boxed_video_path else "No"]
+        ["广告片段总数", str(total_segments)],
+        ["片段总大小", f"{total_size_mb:.2f} MB"],
+        ["平均片段大小", f"{avg_size_kb:.2f} KB"],
+        ["是否包含标记视频", "是" if boxed_video_path else "否"]
     ]
     stats_table = Table(stats_data, colWidths=[2.5 * inch, 2.5 * inch])
     stats_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('BACKGROUND', (0, 0), (-1, 0), secondary_color),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTNAME', (0, 0), (-1, -1), '微软雅黑'),
         ('FONTSIZE', (0, 0), (-1, 0), 12),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, accent_color]),
         ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
-        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 1), (-1, -1), 10),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4)
     ]))
     elements.append(stats_table)
     
@@ -248,16 +270,61 @@ def generate_pdf_report(video_segments, summary_text, boxed_video_path, output_p
         ]))
         elements.append(detail_table)
     
+    # Page decorations: header banner and footer page number
+    folder_name_for_header = os.path.basename(input_folder.rstrip('/'))
+
+    def _draw_footer(canv, doc_obj):
+        canv.saveState()
+        canv.setFont('微软雅黑', 9)
+        canv.setFillColor(colors.grey)
+        page_num_text = f"第 {canv.getPageNumber()} 页"
+        canv.drawRightString(doc_obj.pagesize[0] - doc_obj.rightMargin, 0.5 * inch, page_num_text)
+        canv.restoreState()
+
+    def _draw_first_page(canv, doc_obj):
+        canv.saveState()
+        # Header banner
+        banner_height = 0.6 * inch
+        banner_y = doc_obj.pagesize[1] - banner_height
+        canv.setFillColor(primary_color)
+        canv.rect(0, banner_y, doc_obj.pagesize[0], banner_height, stroke=0, fill=1)
+        canv.setFillColor(colors.whitesmoke)
+        canv.setFont('微软雅黑', 12)
+        canv.drawString(doc_obj.leftMargin, banner_y + banner_height/2 - 4, f"分析项目：{folder_name_for_header}")
+        # Footer
+        _draw_footer(canv, doc_obj)
+        canv.restoreState()
+
+    def _draw_later_pages(canv, doc_obj):
+        canv.saveState()
+        # Thin header line
+        line_y = doc_obj.pagesize[1] - doc_obj.topMargin + 6
+        canv.setStrokeColor(accent_color)
+        canv.setLineWidth(1)
+        canv.line(doc_obj.leftMargin, line_y, doc_obj.pagesize[0] - doc_obj.rightMargin, line_y)
+        # Footer
+        _draw_footer(canv, doc_obj)
+        canv.restoreState()
+
     # Build the PDF
-    doc.build(elements)
+    doc.build(elements, onFirstPage=_draw_first_page, onLaterPages=_draw_later_pages)
     print(f"PDF report generated successfully at {output_pdf_path}")
 
-def main(input_folder, output_pdf_path=None):
+def main(input_folder, output_directory=None):
     """
     Main function to load data from cut.py output folder and generate the PDF report.
     """
-    if output_pdf_path is None:
-        output_pdf_path = os.path.join(input_folder, "advertisement_analysis_report.pdf")
+    # Get base folder name to generate PDF filename
+    folder_name = os.path.basename(input_folder.rstrip('/'))
+    pdf_filename = f"{folder_name}_analysis_report.pdf"
+    
+    if output_directory is None:
+        # Generate PDF in the same directory as the input folder
+        output_pdf_path = os.path.join(os.path.dirname(input_folder), pdf_filename)
+    else:
+        # Ensure output directory exists
+        os.makedirs(output_directory, exist_ok=True)
+        output_pdf_path = os.path.join(output_directory, pdf_filename)
     
     video_segments, summary_text, boxed_video_path = load_data_from_folder(input_folder)
     generate_pdf_report(video_segments, summary_text, boxed_video_path, output_pdf_path, input_folder)
@@ -266,11 +333,12 @@ if __name__ == "__main__":
     import sys
     
     if len(sys.argv) < 2:
-        print("Usage: python pdf_generate.py <input_folder> [output_pdf_path]")
+        print("Usage: python pdf_generate.py <input_folder> [output_directory]")
         print("Example: python pdf_generate.py ./yolo广告检测demo-产品文件夹")
+        print("Example: python pdf_generate.py ./yolo广告检测demo-产品文件夹 ./reports")
         sys.exit(1)
     
     input_folder = sys.argv[1]
-    output_pdf = sys.argv[2] if len(sys.argv) > 2 else None
+    output_directory = sys.argv[2] if len(sys.argv) > 2 else None
     
-    main(input_folder, output_pdf)
+    main(input_folder, output_directory)
