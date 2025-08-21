@@ -1,0 +1,19 @@
+{
+  "name": "gamma-client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Gamma API 客户端与CLI，用于通过API生成并导出PPT/PDF",
+  "scripts": {
+    "start": "node ./src/index.js",
+    "generate": "node ./src/index.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "undici": "^6.19.8",
+    "yargs": "^17.7.2"
+  }
+}
+
+
+

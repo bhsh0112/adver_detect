@@ -1,0 +1,10 @@
+ultralytics
+opencv-python
+numpy
+Pillow
+moviepy
+python-docx
+reportlab
+imageio-ffmpeg
+torch
+torchvision

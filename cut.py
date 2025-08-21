@@ -15,7 +15,7 @@ def cv2AddChineseText(img, text, position, textColor, textSize):
         img = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
     draw = ImageDraw.Draw(img)
     fontStyle = ImageFont.truetype(
-        "微软雅黑.TTC", textSize, encoding="utf-8")
+        "DejaVuSerif-Bold.ttf", textSize, encoding="utf-8")
     # 绘制文本
     draw.text(position, text, textColor, font=fontStyle)
     # 转换回OpenCV格式
@@ -58,7 +58,7 @@ def detect_and_save_segments(
     min_segment_duration=0.3
 ):
     os.makedirs(output_folder, exist_ok=True)
-    model = YOLO("./weights/su-v3.pt")
+    model = YOLO("./weights/su-v4.pt")
     cap = cv2.VideoCapture(input_video_path)
     if not cap.isOpened():
         raise ValueError(f"无法打开视频文件: {input_video_path}")
@@ -232,7 +232,7 @@ def generate_summary_report(target_classes, total_duration, segments, output_fol
 
 if __name__ == "__main__":
     # 示例用法
-    input_video = "test/广告2.mp4"
+    input_video = "test/output.mp4"
     base_output_folder = "output"  # 基础输出目录
     target_classes = ["Billboard", "drinks"]  # 要检测的多个目标类别
     
